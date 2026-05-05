@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>RICK://KIR-29 PROTOCOL</title>
+  <style>
+    :root {
+      --bg-0: #04020d;
+      --bg-1: #0d0a1f;
+      --bg-2: #140f2f;
+      --neon-a: #39ff7a;
+      --neon-b: #00e5ff;
+      --neon-c: #ff3abf;
+      --neon-d: #ffd84d;
+      --ink: #eaf4ff;
+      --muted: #a8b6d7;
+      --danger: #ff4c66;
+      --ok: #6fff96;
+      --panel: rgba(7, 12, 28, 0.86);
+      --font-head: "Impact", "Arial Black", sans-serif;
+      --font-body: "Trebuchet MS", "Verdana", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 50% -20%, #34285d 0%, #0a0916 55%, #020107 100%);
+      color: var(--ink);
+      font-family: var(--font-body);
+      overflow: hidden;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      padding: 0;
+    }
+
+    .shell {
+      position: relative;
+      width: min(100vw, 480px);
+      height: 100dvh;
+      max-height: 100dvh;
+      overflow: hidden;
+      border-left: 1px solid rgba(0, 229, 255, 0.25);
+      border-right: 1px solid rgba(0, 229, 255, 0.25);
+      background: linear-gradient(180deg, var(--bg-1), var(--bg-0) 65%);
+      isolation: isolate;
+    }
+
+    .bg-stars,
+    .bg-grid,
+    .bg-scan {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .bg-stars {
+      background:
+        radial-gradient(circle, rgba(255,255,255,0.65) 0 1px, transparent 1px) 0 0 / 42px 42px,
+        radial-gradient(circle, rgba(90,255,170,0.55) 0 1px, transparent 1px) 20px 18px / 64px 64px,
+        radial-gradient(circle, rgba(0,229,255,0.4) 0 1px, transparent 1px) 12px 5px / 88px 88px;
+      opacity: 0.45;
+      animation: drift 16s linear infinite;
+    }
+
+    .bg-grid {
+      background:
+        linear-gradient(rgba(0, 229, 255, 0.16) 1px, transparent 1px) 0 0 / 100% 30px,
+        linear-gradient(90deg, rgba(0, 229, 255, 0.13) 1px, transparent 1px) 0 0 / 26px 100%;
+      transform-origin: center bottom;
+      transform: perspective(520px) rotateX(62deg) translateY(48%);
+      opacity: 0.24;
+      animation: gridShift 5.5s linear infinite;
+    }
+
+    .bg-scan {
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.04) 0,
+        rgba(255, 255, 255, 0.04) 2px,
+        transparent 2px,
+        transparent 6px
+      );
+      mix-blend-mode: screen;
+      opacity: 0.35;
+      animation: scan 6s linear infinite;
+    }
+
+    @keyframes drift {
+      from { transform: translateY(0); }
+      to { transform: translateY(42px); }
+    }
+
+    @keyframes gridShift {
+      from { background-position: 0 0, 0 0; }
+      to { background-position: 0 30px, 26px 0; }
+    }
+
+    @keyframes scan {
+      from { transform: translateY(-12px); }
+      to { transform: translateY(12px); }
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      padding: calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+      overflow: hidden;
+    }
+
+    .screen.active {
+      display: flex;
+      animation: on 300ms ease;
+    }
+
+    @keyframes on {
+      from { opacity: 0; transform: scale(0.985); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .panel {
+      border-radius: 16px;
+      background: var(--panel);
+      border: 1px solid rgba(0, 229, 255, 0.28);
+      box-shadow:
+        0 0 0 1px rgba(87, 255, 122, 0.14) inset,
+        0 0 24px rgba(0, 229, 255, 0.12);
+      padding: 12px;
+      backdrop-filter: blur(2px);
+    }
+
+    .title {
+      margin: 0 0 8px;
+      font-family: var(--font-head);
+      font-size: clamp(24px, 7.2vw, 34px);
+      line-height: 1;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--neon-a);
+      text-shadow: 0 0 9px rgba(57, 255, 122, 0.7), 0 0 18px rgba(57,255,122,0.45);
+    }
+
+    .glitch {
+      position: relative;
+      display: inline-block;
+    }
+
+    .glitch::before,
+    .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      overflow: hidden;
+      clip-path: inset(0);
+      opacity: 0.7;
+    }
+
+    .glitch::before {
+      transform: translate(2px, 0);
+      color: var(--neon-c);
+      animation: glitchA 2.2s infinite linear alternate;
+    }
+
+    .glitch::after {
+      transform: translate(-2px, 0);
+      color: var(--neon-b);
+      animation: glitchB 2.2s infinite linear alternate;
+    }
+
+    @keyframes glitchA {
+      0%, 85%, 100% { clip-path: inset(0 0 0 0); }
+      86% { clip-path: inset(22% 0 58% 0); }
+      90% { clip-path: inset(60% 0 16% 0); }
+      95% { clip-path: inset(12% 0 72% 0); }
+    }
+
+    @keyframes glitchB {
+      0%, 82%, 100% { clip-path: inset(0 0 0 0); }
+      84% { clip-path: inset(70% 0 8% 0); }
+      88% { clip-path: inset(8% 0 78% 0); }
+      93% { clip-path: inset(42% 0 32% 0); }
+    }
+
+    .lead,
+    .body-text,
+    .hud-text,
+    .card p,
+    .card li {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.42;
+      color: #e4f3ff;
+    }
+
+    .lead strong {
+      color: var(--neon-d);
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .danger {
+      color: var(--danger);
+      font-weight: 700;
+      text-shadow: 0 0 7px rgba(255, 76, 102, 0.5);
+    }
+
+    .controls {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .chip {
+      border: 1px solid rgba(255,255,255,0.25);
+      background: rgba(15, 27, 48, 0.8);
+      color: #dcf5ff;
+      border-radius: 12px;
+      padding: 10px 8px;
+      font-family: var(--font-head);
+      font-size: 14px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
+    .chip.active {
+      border-color: rgba(57,255,122,0.9);
+      color: #04150a;
+      background: linear-gradient(130deg, #7dffae, #49ffe8);
+      box-shadow: 0 0 16px rgba(57,255,122,0.45);
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: linear-gradient(130deg, #6dff97, #3bffda 55%, #8ce7ff);
+      color: #02170d;
+      font-family: var(--font-head);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(57,255,122,0.45);
+      transition: transform 120ms ease;
+    }
+
+    .btn:active { transform: scale(0.98); }
+
+    .btn.secondary {
+      color: #dbf7ff;
+      background: linear-gradient(130deg, #1b3654, #174f62);
+      border: 1px solid rgba(0,229,255,0.55);
+      box-shadow: 0 0 14px rgba(0,229,255,0.32);
+    }
+
+    .btn.warn {
+      background: linear-gradient(130deg, #ffaf4a, #ff5fa0);
+      color: #26050b;
+      box-shadow: 0 0 18px rgba(255,95,160,0.42);
+    }
+
+    #battleHud {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .hud-main {
+      display: grid;
+      gap: 4px;
+    }
+
+    #battleField {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.17);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255,58,191,0.12) 0, transparent 40%),
+        radial-gradient(circle at 80% 75%, rgba(57,255,122,0.14) 0, transparent 36%),
+        linear-gradient(180deg, #040714, #020208 70%);
+    }
+
+    #battleField::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(0deg, rgba(0,229,255,0.12), rgba(0,229,255,0.12) 1px, transparent 1px, transparent 24px),
+        repeating-linear-gradient(90deg, rgba(0,229,255,0.08), rgba(0,229,255,0.08) 1px, transparent 1px, transparent 24px);
+      opacity: 0.22;
+      pointer-events: none;
+    }
+
+    .entity {
+      position: absolute;
+      width: 54px;
+      height: 54px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      border: 0;
+      display: grid;
+      place-items: center;
+      font-size: 30px;
+      background: radial-gradient(circle at 28% 22%, #254363, #0c1731 65%);
+      box-shadow: 0 0 14px rgba(0,229,255,0.32), 0 0 0 1px rgba(255,255,255,0.21) inset;
+      color: white;
+      cursor: pointer;
+      z-index: 3;
+    }
+
+    .entity.ship {
+      width: 62px;
+      height: 62px;
+      font-size: 34px;
+      box-shadow: 0 0 18px rgba(255,216,77,0.35), 0 0 0 1px rgba(255,255,255,0.24) inset;
+    }
+
+    .entity.glitch {
+      background: radial-gradient(circle at 35% 30%, #6a1a52, #25051f 70%);
+      box-shadow: 0 0 14px rgba(255,58,191,0.4), 0 0 0 1px rgba(255,255,255,0.18) inset;
+    }
+
+    .entity.boss {
+      width: 84px;
+      height: 84px;
+      font-size: 44px;
+      box-shadow: 0 0 24px rgba(255,76,102,0.48), 0 0 0 1px rgba(255,255,255,0.25) inset;
+      background: radial-gradient(circle at 35% 28%, #4f1e2b, #140308 74%);
+    }
+
+    .entity.dead {
+      animation: pop 280ms forwards;
+      pointer-events: none;
+    }
+
+    @keyframes pop {
+      from { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      to { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+    }
+
+    .laser {
+      position: absolute;
+      width: 5px;
+      border-radius: 5px;
+      background: linear-gradient(to top, #ccffd6, #58ff86, #2bdb5f);
+      box-shadow: 0 0 20px rgba(57,255,122,0.92);
+      transform-origin: center bottom;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .spark {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #97ffe7;
+      box-shadow: 0 0 10px #97ffe7;
+      pointer-events: none;
+      z-index: 4;
+      animation: spark 340ms ease forwards;
+    }
+
+    @keyframes spark {
+      from { opacity: 1; transform: translate(0, 0) scale(1); }
+      to { opacity: 0; transform: translate(var(--sx), var(--sy)) scale(0.2); }
+    }
+
+    .bar {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+
+    .bar > i {
+      display: block;
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, #39ff7a, #00e5ff);
+      box-shadow: 0 0 10px rgba(0,229,255,0.7);
+      transition: width 180ms ease;
+    }
+
+    #battleLog {
+      font-size: 14px;
+      color: #ffdede;
+      min-height: 20px;
+    }
+
+    #portalArena {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(0,229,255,0.35);
+      background:
+        radial-gradient(circle at 22% 22%, rgba(0,229,255,0.16), transparent 38%),
+        radial-gradient(circle at 75% 70%, rgba(57,255,122,0.12), transparent 32%),
+        #050913;
+    }
+
+    .portal {
+      position: absolute;
+      width: 102px;
+      height: 102px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      border: 0;
+      display: grid;
+      place-items: center;
+      font-size: 40px;
+      cursor: pointer;
+      animation: swirl 980ms linear infinite;
+      box-shadow: 0 0 18px rgba(0,229,255,0.6), 0 0 30px rgba(57,255,122,0.35);
+      z-index: 3;
+    }
+
+    .portal.real {
+      background: radial-gradient(circle, #c4fff7 0 16%, #7cffdf 37%, #00e6cb 58%, #008ca0 95%);
+      color: #00161d;
+    }
+
+    .portal.fake {
+      background: radial-gradient(circle, #ffd4f7 0 18%, #ff8be9 38%, #ff3abf 64%, #a01278 96%);
+      color: #34001f;
+      filter: saturate(0.95);
+      opacity: 0.9;
+    }
+
+    @keyframes swirl {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    .scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      display: grid;
+      gap: 10px;
+      padding-right: 2px;
+    }
+
+    .scroll::-webkit-scrollbar { width: 8px; }
+    .scroll::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, rgba(0,229,255,0.7), rgba(57,255,122,0.7));
+      border-radius: 999px;
+    }
+
+    .img-card img {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.24);
+      display: block;
+    }
+
+    #openLetter {
+      border: 0;
+      border-radius: 14px;
+      padding: 13px;
+      font-family: var(--font-head);
+      font-size: 16px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: #ffeccb;
+      background: linear-gradient(130deg, #533309, #98611a);
+      box-shadow: 0 0 16px rgba(255, 177, 69, 0.4);
+    }
+
+    #letterText {
+      display: none;
+      white-space: pre-line;
+      font-size: 17px;
+      line-height: 1.47;
+      color: #eaf7ff;
+    }
+
+    .cards {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      display: grid;
+      gap: 10px;
+      padding-right: 2px;
+    }
+
+    .card {
+      border-radius: 14px;
+      border: 1px solid rgba(0,229,255,0.27);
+      padding: 12px;
+      background: rgba(5, 12, 25, 0.88);
+      box-shadow: 0 0 18px rgba(0,229,255,0.09);
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-family: var(--font-head);
+      letter-spacing: 0.5px;
+      font-size: 20px;
+      color: var(--neon-b);
+      text-transform: uppercase;
+      line-height: 1.1;
+    }
+
+    .card ul {
+      margin: 0;
+      padding-left: 20px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .good { color: var(--ok); font-weight: 700; }
+    .bad { color: #ff9ead; font-weight: 700; }
+
+    .double {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr;
+    }
+
+    @media (min-width: 420px) {
+      .double { grid-template-columns: 1fr 1fr; }
+    }
+
+    details summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: #d3f9ff;
+      font-size: 17px;
+      margin-bottom: 6px;
+    }
+
+    .tiny {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    a { color: #7af7ff; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="bg-stars"></div>
+    <div class="bg-grid"></div>
+    <div class="bg-scan"></div>
+
+    <section id="intro" class="screen active">
+      <div class="panel">
+        <h1 class="title glitch" data-text="RICK://KIR-29">RICK://KIR-29</h1>
+        <p class="lead"><span class="danger">ТРЕВОГА ПО ВСЕЛЕННОЙ C-137:</span> Кириешка, сегодня <strong>05 мая 2026</strong>, тебе исполнилось <strong>29</strong>, и именно в этот день ты обязан закрыть монстро-прорыв. Иначе всё полетит в ад быстрее, чем ты в прошлом месяце летел с 11-го этажа по лестнице с собакой и сломанной ногой.</p>
+      </div>
+
+      <div class="panel">
+        <p class="body-text">Режим миссии:</p>
+        <div class="controls" id="difficultyControls">
+          <button class="chip" data-diff="light">ЛАЙТ</button>
+          <button class="chip active" data-diff="standard">СТАНДАРТ</button>
+          <button class="chip" data-diff="hard">ХАРД</button>
+        </div>
+        <p class="tiny" style="margin-top:8px;">Лайт = проще и мягче. Стандарт = бодрый. Хард = для лысых без тормозов с тату "KB" (Космический Бесстрашный / Костолом-Бегун, сам выбирай).</p>
+      </div>
+
+      <div class="panel">
+        <p class="lead">Геймплей теперь не унылый: 3 волны, разные враги, ложные цели, мини-босс и потом портал с приманками.</p>
+      </div>
+
+      <button id="startBtn" class="btn">Запустить Протокол</button>
+    </section>
+
+    <section id="battle" class="screen">
+      <div id="battleHud" class="panel">
+        <div class="hud-main">
+          <div class="hud-text" id="hudLine">Волна 1/3 • Фраги 0/14 • HP 3</div>
+          <div class="bar"><i id="progressBar"></i></div>
+        </div>
+        <button id="panicBtn" class="btn warn" style="padding:10px 10px; font-size:13px;">Рестарт</button>
+      </div>
+
+      <div id="battleField"></div>
+
+      <div class="panel">
+        <p id="battleLog">Рик: «Вперёд, Кириешка. Не стреляй по фейкам и не паникуй.»</p>
+      </div>
+    </section>
+
+    <section id="portalStage" class="screen">
+      <div class="panel">
+        <h2 class="title" style="font-size: clamp(20px, 6vw, 30px);">Портальный Тест</h2>
+        <p class="lead">Нужно поймать <strong>настоящий портал</strong> 3 раза подряд. Розовые - фейки, они сбрасывают серию.</p>
+        <p class="tiny" id="portalStatus" style="margin-top:6px;">Серия: 0 / 3</p>
+      </div>
+
+      <div id="portalArena"></div>
+
+      <div class="panel tiny">Рик: «Если промахнёшься, Морти будет обучать тебя технике безопасности. Ты этого не хочешь.»</div>
+    </section>
+
+    <section id="letterStage" class="screen">
+      <div class="panel">
+        <h2 class="title" style="font-size: clamp(20px, 6vw, 30px);">Письмо Из Петли</h2>
+        <p class="lead">Сначала открой скомканное письмо, потом получишь полный досье-кодекс.</p>
+      </div>
+
+      <div class="scroll">
+        <article class="panel img-card">
+          <img src="фото небо 05.05.1997.gif" alt="Небо 05.05.1997" />
+          <p class="muted" style="margin-top:8px;">Небо в дату рождения: 05.05.1997. Кометный вайб и очень в тему для твоей мультивселенной.</p>
+        </article>
+
+        <article class="panel img-card">
+          <img src="2026-05-05_06-21-17.png" alt="Натальная карта" />
+          <p class="muted" style="margin-top:8px;">Твоя натальная схема из закрепа. Я её разобрал ниже по домам/планетам/узлам без воды.</p>
+        </article>
+
+        <button id="openLetter">Открыть письмо Рика</button>
+
+        <div id="letterText" class="panel"></div>
+      </div>
+
+      <button id="toCodex" class="btn secondary" style="display:none;">Открыть Рик-Шпоры</button>
+    </section>
+
+    <section id="codexStage" class="screen">
+      <div class="panel">
+        <h2 class="title" style="font-size: clamp(20px, 6vw, 30px);">RICK-CODEX: KIRILL_29</h2>
+        <p class="lead">Данные: 05.05.1997, 12:10, Москва. Ниже микс «наука + эзотерика», но с практикой: что делать и чего категорически не делать.</p>
+      </div>
+
+      <div class="cards">
+        <article class="card">
+          <h3>Паспорт Личности</h3>
+          <p><span class="good">Солнце в Тельце + 10 дом:</span> ты создатель устойчивых результатов и репутации. Ты не про «сделал сторис и исчез», ты про след в реальности.</p>
+          <p style="margin-top:8px;"><span class="good">Луна в Овне + Меркурий в Овне:</span> быстрый отклик, прямая речь, мгновенный старт. Теневая сторона: сначала вспыхнул, потом подумал.</p>
+          <p style="margin-top:8px;"><span class="good">Асцендент Лев:</span> врождённая сценичность, лидерская подача. Да, Кириешка, даже лысина тут работает как фирменный «антенный купол гения».</p>
+        </article>
+
+        <article class="card">
+          <h3>Элементный Профиль</h3>
+          <ul>
+            <li><span class="good">Огонь 49%</span> - топливо, драйв, воля, напор.</li>
+            <li><span class="good">Земля 38%</span> - практичность, деньги, результат.</li>
+            <li><span class="bad">Воздух 13%</span> - иногда не хватает дистанции и холодного анализа.</li>
+            <li><span class="bad">Вода 0%</span> - эмоции проживаются через действие, а не через мягкость. Отсюда риск выгорания и жёсткости.</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <h3>Планеты: Плюс/Минус/Апгрейд</h3>
+          <details open>
+            <summary>Солнце в Тельце, 10 дом</summary>
+            <p>Плюс: системность и выносливость. Минус: упрямство «я прав и всё». Апгрейд: фиксируй долгие цели по кварталам и не меняй вектор от каждой эмоции.</p>
+          </details>
+          <details>
+            <summary>Луна в Овне, 9 дом</summary>
+            <p>Плюс: смелость идти в новое. Минус: вспыльчивость в спорах о смыслах. Апгрейд: споришь - сначала 3 вдоха, потом рот.</p>
+          </details>
+          <details>
+            <summary>Марс в Деве, 2 дом</summary>
+            <p>Плюс: умеешь зарабатывать через навык и сервис. Минус: перфекционизм и «доделаю идеально потом». Апгрейд: правило 80/20, релиз, потом доработка.</p>
+          </details>
+          <details>
+            <summary>Юпитер в Водолее, 7 дом</summary>
+            <p>Плюс: рост через партнёрства, сообщество, людей «из будущего». Минус: разочарования, когда идеализируешь команду. Апгрейд: договорённости только письменно.</p>
+          </details>
+        </article>
+
+        <article class="card">
+          <h3>Дома: Где Твои Миссии</h3>
+          <ul>
+            <li><span class="good">1 дом Лев:</span> пришёл в жизнь заметным, как прожектор. Скрываться нельзя - это против твоей сборки.</li>
+            <li><span class="good">10 дом Овен + стеллиум:</span> твой вектор - лидерские проекты, личный бренд, самостоятельные решения.</li>
+            <li><span class="good">6 дом Козерог (Уран/Нептун):</span> на работе ты изобретатель систем, но режим должен быть железным.</li>
+            <li><span class="bad">4 дом Плутон:</span> род/семья - зона глубокой трансформации, тут нельзя жить в режиме «ничего не чувствую».</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <h3>Кармические Узлы (Раху/Кету)</h3>
+          <p><span class="good">Раху в Деве, 3 дом:</span> твой рост через дисциплину ума, ремесло, прикладные знания, честный разговор и практику каждый день.</p>
+          <p style="margin-top:8px;"><span class="bad">Кету в Рыбах, 9 дом:</span> старая привычка - уходить в абстрактные «космические» объяснения, когда надо просто сделать шаг и проверить гипотезу.</p>
+          <p style="margin-top:8px;">Формула: меньше магического тумана, больше трекера задач и фактов. Сначала данные, потом философия.</p>
+        </article>
+
+        <article class="card">
+          <h3>Лилит И Тень</h3>
+          <p>В твоём закрепе точка Лилит градусом не указана, так что без фейков: Лилит здесь трактуем как триггер на тему контроля, гордости и «я сам всё вывезу».</p>
+          <ul style="margin-top:8px;">
+            <li>Когда стыдно просить помощь - ты уже в минусе.</li>
+            <li>Когда делаешь вид «мне норм», а внутри злость - минус.</li>
+            <li>Когда бежишь по лестнице с собакой на скорость - это не героизм, это квест «сломай ногу за 30 секунд».</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <h3>Матрица Судьбы (22 Аркана)</h3>
+          <p>По базовому расчёту из даты 05.05.1997 (школы отличаются, но каркас один):</p>
+          <ul style="margin-top:8px;">
+            <li><span class="good">День 5 (Иерофант):</span> учить, объяснять, держать ценности.</li>
+            <li><span class="good">Месяц 5 (Иерофант):</span> усиление темы наставничества и этики.</li>
+            <li><span class="good">Год 26 -> 8 (Справедливость) либо 4 (Император) в других школах:</span> карма структуры, закона, ответственности.</li>
+            <li><span class="good">Сумма 14 (Умеренность):</span> главный урок - баланс, ритм, детокс крайностей.</li>
+          </ul>
+          <p style="margin-top:8px;">То есть «кармический хвост» у тебя про крайности и дисциплину: перестать жить рывками и собрать ровный контур жизни.</p>
+        </article>
+
+        <article class="card">
+          <h3>Что Лучше НЕ Делать (Как Портить Карму)</h3>
+          <ul>
+            <li>Не геройствовать телом ради адреналина и спора. Твоя история с ногой уже была демонстрацией.</li>
+            <li>Не принимать важные решения в злости/обиде.</li>
+            <li>Не обещать больше, чем реально вывезешь по времени.</li>
+            <li>Не путать упрямство с принципами.</li>
+            <li>Не жить в графике «2 дня сверхчеловек, потом 5 дней мёртвый».</li>
+            <li>Не копить раздражение и не отыгрываться на близких.</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <h3>Как Чистить Себя И Держать Плюс</h3>
+          <ul>
+            <li>Ежедневная физика 20-40 минут: ходьба, ЛФК, растяжка (без цирка с лестницами).</li>
+            <li>Режим сна + вода + питание по часам: твоя нервная система любит ритм.</li>
+            <li>Письменно выгружать эмоции 10 минут в день, чтобы не взрываться.</li>
+            <li>1 проект = 1 фокус. Закрыл - только потом следующий.</li>
+            <li>Раз в неделю «ревизия кармы»: что сделал честно, где накосячил, как исправил.</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <h3>Питание (Вегетарианский Контур)</h3>
+          <p>С практической стороны тебе важны: белок, железо, B12, омега-3, кальций.</p>
+          <ul style="margin-top:8px;">
+            <li>Белок: бобовые, тофу/темпе, яйца/молочка (если употребляешь), орехи/семена.</li>
+            <li>Железо: чечевица, фасоль, зелень, обогащённые крупы + витамин C в том же приёме пищи.</li>
+            <li>B12: молочка/яйца/фортифицированные продукты, при необходимости добавка по анализам.</li>
+            <li>Омега-3: лён, чиа, грецкий орех, масла, при желании DHA/EPA из водорослей.</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <h3>Рик-Финал Для Кириешки</h3>
+          <p>Кирилл, ты не «сломанная версия», ты просто мощный реактор без штатного техобслуживания. Тату <strong>KB</strong> пусть будет не «Косяк Бесконечный», а <strong>Курс Будущего</strong>. С днюхой, 29 - это не конец молодости, это запуск твоей взрослой ракеты, если ты перестанешь бежать по лестнице наперегонки с гравитацией.</p>
+          <p style="margin-top:8px;">Подпись: Рик из ветки, где ты уже закрыл хвосты и не творишь хрень на ровном месте.</p>
+        </article>
+
+        <article class="card">
+          <h3>Галерея Закрепов</h3>
+          <div class="double">
+            <img src="2026-05-05_06-21-35.png" alt="Наталка 2" style="width:100%; border-radius:10px; border:1px solid rgba(255,255,255,0.22);" />
+            <img src="tablicu-vstavit-v-tekst-pered-harakteristikami-planet.png" alt="Таблица планет" style="width:100%; border-radius:10px; border:1px solid rgba(255,255,255,0.22);" />
+          </div>
+          <p class="tiny" style="margin-top:8px;">PDF матрицы: <a href="Матрица судьбы - впаа 05.05.1997.pdf" target="_blank" rel="noopener">открыть оригинал</a>.</p>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const screens = {
+      intro: document.getElementById("intro"),
+      battle: document.getElementById("battle"),
+      portal: document.getElementById("portalStage"),
+      letter: document.getElementById("letterStage"),
+      codex: document.getElementById("codexStage")
+    };
+
+    const startBtn = document.getElementById("startBtn");
+    const panicBtn = document.getElementById("panicBtn");
+    const battleField = document.getElementById("battleField");
+    const hudLine = document.getElementById("hudLine");
+    const progressBar = document.getElementById("progressBar");
+    const battleLog = document.getElementById("battleLog");
+
+    const portalArena = document.getElementById("portalArena");
+    const portalStatus = document.getElementById("portalStatus");
+
+    const openLetterBtn = document.getElementById("openLetter");
+    const letterText = document.getElementById("letterText");
+    const toCodexBtn = document.getElementById("toCodex");
+
+    let audioCtx = null;
+    let ambientTimer = null;
+
+    let selectedDiff = "standard";
+    const difficulty = {
+      light: { hp: 4, goal: 12, speedMul: 0.85, spawnMs: 920, portalMs: 800, fakeCount: 2 },
+      standard: { hp: 3, goal: 14, speedMul: 1, spawnMs: 780, portalMs: 620, fakeCount: 3 },
+      hard: { hp: 3, goal: 16, speedMul: 1.22, spawnMs: 640, portalMs: 470, fakeCount: 4 }
+    };
+
+    const enemyDefs = {
+      alien: { emoji: "👾", hp: 1, className: "", reward: 1, speed: [0.5, 1.1] },
+      ship: { emoji: "🛸", hp: 2, className: "ship", reward: 2, speed: [0.6, 1.25] },
+      glitch: { emoji: "🛰️", hp: 1, className: "glitch", reward: -1, speed: [0.75, 1.35] },
+      boss: { emoji: "👹", hp: 4, className: "boss", reward: 4, speed: [0.55, 0.95] }
+    };
+
+    const wavePlan = [
+      ["alien", "alien", "ship"],
+      ["alien", "ship", "glitch", "alien"],
+      ["ship", "glitch", "boss"]
+    ];
+
+    let entities = [];
+    let rafId = 0;
+    let spawnTimer = 0;
+    let totalFrags = 0;
+    let hp = 3;
+    let wave = 0;
+    let waveFrags = 0;
+    let portalTimer = 0;
+    let portalStreak = 0;
+
+    const letterBody = `Кириешка, слушай внимательно. Это Рик из ветки, где ты уже научился жить без саморазноса.
+
+Во-первых, с днюхой. Да, 05.05.2026 тебе ровно 29. Неплохо для парня, который недавно устроил забег по лестнице с 11-го этажа с собакой, пока нормальные люди едут в лифте. Итог: минус нога, плюс легенда. Морти бы гордился, но как учебным фильмом "как не надо делать".
+
+Во-вторых, ты не слабый - ты перегретый. У тебя по карте топливо мощное: огонь, земля, лидерская подача, импульс на действие. Но если нет системы, это превращается в спектакль "гений на максималках, потом авария".
+
+Твоя тату KB на затылке теперь официально расшифровывается так:
+- К = Контроль импульса,
+- Б = База режима.
+Потому что если будет "Кураж Бесконечный", ты опять побежишь куда-то не туда.
+
+Теперь главное. Ты в этой жизни не для того, чтобы красиво сгореть. Ты для того, чтобы выстроить опорную реальность и вести других. Да, это звучит пафосно, но в твоём случае это просто технический факт.
+
+Твои хвосты не закрываются истерикой, спасательством всех подряд или геройством на травме. Они закрываются дисциплиной, честностью с собой и ежедневной практикой. Это скучнее, чем космическая погоня, но работает. А магия без структуры - это просто дорогой цирк.
+
+Ниже я собрал тебе полный кодекс: наталка, дома, узлы, матрица, питание, анти-косяки. Читай, применяй, и не строй из себя бессмертного. Даже я иногда пристёгиваюсь.
+
+Подпись: Рик, который устал вытаскивать тебя из временных петель.`;
+
+    function showScreen(name) {
+      Object.values(screens).forEach((s) => s.classList.remove("active"));
+      screens[name].classList.add("active");
+    }
+
+    function ensureAudio() {
+      if (audioCtx) return;
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audioCtx = new Ctx();
+      startAmbient();
+    }
+
+    function tone({ freq = 440, duration = 0.1, type = "sine", gain = 0.06, glide = null }) {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const amp = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      if (glide) osc.frequency.exponentialRampToValueAtTime(glide, now + duration);
+      amp.gain.setValueAtTime(0.0001, now);
+      amp.gain.exponentialRampToValueAtTime(gain, now + 0.015);
+      amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      osc.connect(amp);
+      amp.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + duration + 0.04);
+    }
+
+    function startAmbient() {
+      if (!audioCtx || ambientTimer) return;
+      const seq = [88, 110, 132, 164, 146, 123];
+      let i = 0;
+      ambientTimer = window.setInterval(() => {
+        const f = seq[i % seq.length];
+        tone({ freq: f, glide: f * 1.08, duration: 0.2, type: "triangle", gain: 0.018 });
+        if (i % 2 === 0) tone({ freq: f * 2, duration: 0.08, type: "sine", gain: 0.012 });
+        i += 1;
+      }, 420);
+    }
+
+    function sfxShoot() {
+      tone({ freq: 920, glide: 260, duration: 0.11, type: "sawtooth", gain: 0.08 });
+      tone({ freq: 1260, glide: 420, duration: 0.08, type: "triangle", gain: 0.04 });
+    }
+
+    function sfxHit() {
+      tone({ freq: 320, glide: 180, duration: 0.13, type: "square", gain: 0.09 });
+      if ("speechSynthesis" in window && Math.random() > 0.45) {
+        const u = new SpeechSynthesisUtterance(Math.random() > 0.5 ? "Ай" : "Ой");
+        u.lang = "ru-RU";
+        u.pitch = 1.35;
+        u.rate = 1.18;
+        u.volume = 0.7;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(u);
+      }
+    }
+
+    function sfxBad() {
+      tone({ freq: 190, glide: 90, duration: 0.16, type: "square", gain: 0.08 });
+    }
+
+    function sfxPortalGood() {
+      tone({ freq: 290, glide: 880, duration: 0.21, type: "triangle", gain: 0.07 });
+      tone({ freq: 140, glide: 640, duration: 0.25, type: "sine", gain: 0.045 });
+    }
+
+    function sfxPortalBad() {
+      tone({ freq: 700, glide: 220, duration: 0.12, type: "sawtooth", gain: 0.07 });
+    }
+
+    function sfxPaper() {
+      tone({ freq: 250, glide: 110, duration: 0.12, type: "triangle", gain: 0.055 });
+      tone({ freq: 620, glide: 300, duration: 0.08, type: "square", gain: 0.04 });
+    }
+
+    function logMsg(text) {
+      battleLog.textContent = `Рик: «${text}»`;
+    }
+
+    function updateHud() {
+      const goal = difficulty[selectedDiff].goal;
+      hudLine.textContent = `Волна ${wave + 1}/3 • Фраги ${totalFrags}/${goal} • HP ${hp}`;
+      const pct = Math.min(100, Math.round((totalFrags / goal) * 100));
+      progressBar.style.width = `${pct}%`;
+    }
+
+    function clearBattle() {
+      entities.forEach((e) => e.el.remove());
+      entities = [];
+      battleField.innerHTML = "";
+      window.cancelAnimationFrame(rafId);
+      window.clearInterval(spawnTimer);
+    }
+
+    function spawnEntity(typeKey) {
+      const cfg = difficulty[selectedDiff];
+      const def = enemyDefs[typeKey];
+      const rect = battleField.getBoundingClientRect();
+      const size = def.className === "boss" ? 84 : def.className === "ship" ? 62 : 54;
+      const half = size / 2;
+
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = `entity ${def.className}`.trim();
+      el.textContent = def.emoji;
+
+      const vMin = def.speed[0] * cfg.speedMul;
+      const vMax = def.speed[1] * cfg.speedMul;
+
+      const entity = {
+        el,
+        type: typeKey,
+        hp: def.hp,
+        x: Math.random() * (rect.width - size) + half,
+        y: Math.random() * (rect.height - size) + half,
+        vx: (Math.random() * (vMax - vMin) + vMin) * (Math.random() > 0.5 ? 1 : -1),
+        vy: (Math.random() * (vMax - vMin) + vMin) * (Math.random() > 0.5 ? 1 : -1),
+        size,
+        alive: true
+      };
+
+      el.style.left = `${entity.x}px`;
+      el.style.top = `${entity.y}px`;
+      battleField.appendChild(el);
+      entities.push(entity);
+
+      const hit = () => hitEntity(entity);
+      el.addEventListener("click", hit);
+      el.addEventListener("touchstart", (ev) => {
+        ev.preventDefault();
+        hit();
+      }, { passive: false });
+    }
+
+    function spawnSpark(x, y) {
+      for (let i = 0; i < 6; i += 1) {
+        const s = document.createElement("i");
+        s.className = "spark";
+        s.style.left = `${x}px`;
+        s.style.top = `${y}px`;
+        const sx = (Math.random() * 36 - 18).toFixed(1);
+        const sy = (Math.random() * 36 - 18).toFixed(1);
+        s.style.setProperty("--sx", `${sx}px`);
+        s.style.setProperty("--sy", `${sy}px`);
+        battleField.appendChild(s);
+        setTimeout(() => s.remove(), 350);
+      }
+    }
+
+    function drawLaser(targetX, targetY) {
+      const rect = battleField.getBoundingClientRect();
+      const startX = rect.width * 0.5;
+      const startY = rect.height - 8;
+      const dx = targetX - startX;
+      const dy = targetY - startY;
+      const dist = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+
+      const l = document.createElement("div");
+      l.className = "laser";
+      l.style.left = `${startX}px`;
+      l.style.top = `${startY}px`;
+      l.style.height = `${dist}px`;
+      l.style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
+      battleField.appendChild(l);
+      setTimeout(() => l.remove(), 100);
+    }
+
+    function hitEntity(entity) {
+      if (!entity.alive) return;
+      ensureAudio();
+      sfxShoot();
+      drawLaser(entity.x, entity.y);
+
+      entity.hp -= 1;
+      if (entity.hp > 0) {
+        entity.el.style.transform = "translate(-50%, -50%) scale(0.92)";
+        setTimeout(() => {
+          if (entity.alive) entity.el.style.transform = "translate(-50%, -50%) scale(1)";
+        }, 90);
+        logMsg("Щит задел. Добавь мощности, Кириешка.");
+        return;
+      }
+
+      entity.alive = false;
+      entity.el.classList.add("dead");
+      spawnSpark(entity.x, entity.y);
+
+      const def = enemyDefs[entity.type];
+      if (def.reward > 0) {
+        totalFrags += def.reward;
+        waveFrags += def.reward;
+        sfxHit();
+      } else {
+        hp -= 1;
+        sfxBad();
+        logMsg("Ты шлёпнул фейк-цель. Минус HP. Молодец, гений.");
+      }
+
+      updateHud();
+
+      if (hp <= 0) {
+        finishBattle(false);
+        return;
+      }
+
+      const waveGoal = [4, 5, 5][wave];
+      if (waveFrags >= waveGoal && wave < 2) {
+        wave += 1;
+        waveFrags = 0;
+        logMsg(`Волна ${wave + 1}. Теперь без сонных тапов.`);
+      }
+
+      if (totalFrags >= difficulty[selectedDiff].goal) {
+        finishBattle(true);
+      }
+
+      setTimeout(() => entity.el.remove(), 260);
+    }
+
+    function battleLoop() {
+      const rect = battleField.getBoundingClientRect();
+      entities.forEach((e) => {
+        if (!e.alive) return;
+        const half = e.size / 2;
+        e.x += e.vx;
+        e.y += e.vy;
+
+        if (e.x < half || e.x > rect.width - half) e.vx *= -1;
+        if (e.y < half || e.y > rect.height - half) e.vy *= -1;
+
+        e.x = Math.max(half, Math.min(rect.width - half, e.x));
+        e.y = Math.max(half, Math.min(rect.height - half, e.y));
+
+        e.el.style.left = `${e.x}px`;
+        e.el.style.top = `${e.y}px`;
+      });
+
+      rafId = window.requestAnimationFrame(battleLoop);
+    }
+
+    function startSpawning() {
+      const cfg = difficulty[selectedDiff];
+      let tick = 0;
+      spawnTimer = window.setInterval(() => {
+        if (hp <= 0) return;
+        const pool = wavePlan[wave];
+        const kind = pool[tick % pool.length];
+        spawnEntity(kind);
+        tick += 1;
+
+        if (entities.filter((e) => e.alive).length > 7) {
+          const alive = entities.find((e) => e.alive);
+          if (alive) {
+            alive.alive = false;
+            alive.el.remove();
+          }
+        }
+      }, cfg.spawnMs);
+    }
+
+    function finishBattle(win) {
+      window.clearInterval(spawnTimer);
+      if (!win) {
+        logMsg("Ты умер как идиот в параллельной ветке. Жми Рестарт.");
+        return;
+      }
+      logMsg("Неплохо. Монстры в пепле. Переходим к порталам.");
+      setTimeout(() => {
+        clearBattle();
+        startPortalGame();
+      }, 600);
+    }
+
+    function startBattle() {
+      clearBattle();
+      const cfg = difficulty[selectedDiff];
+      totalFrags = 0;
+      wave = 0;
+      waveFrags = 0;
+      hp = cfg.hp;
+      updateHud();
+      logMsg("Стартуем. И да, не стреляй в ложные цели.");
+      showScreen("battle");
+      startSpawning();
+      battleLoop();
+    }
+
+    function setDifficulty(diff) {
+      selectedDiff = diff;
+      document.querySelectorAll(".chip").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.diff === diff);
+      });
+    }
+
+    function startPortalGame() {
+      portalStreak = 0;
+      showScreen("portal");
+      portalStatus.textContent = `Серия: ${portalStreak} / 3`;
+      spawnPortalSet();
+      window.clearInterval(portalTimer);
+      portalTimer = window.setInterval(movePortals, difficulty[selectedDiff].portalMs);
+      sfxPortalGood();
+    }
+
+    function clearPortals() {
+      portalArena.querySelectorAll(".portal").forEach((n) => n.remove());
+    }
+
+    function randomPos(size) {
+      const rect = portalArena.getBoundingClientRect();
+      return {
+        x: Math.random() * (rect.width - size) + size / 2,
+        y: Math.random() * (rect.height - size) + size / 2
+      };
+    }
+
+    function spawnPortalSet() {
+      clearPortals();
+      const cfg = difficulty[selectedDiff];
+      const total = 1 + cfg.fakeCount;
+      const realIdx = Math.floor(Math.random() * total);
+
+      for (let i = 0; i < total; i += 1) {
+        const p = document.createElement("button");
+        const real = i === realIdx;
+        p.type = "button";
+        p.className = `portal ${real ? "real" : "fake"}`;
+        p.textContent = "🌀";
+        p.dataset.real = real ? "1" : "0";
+
+        const pos = randomPos(102);
+        p.style.left = `${pos.x}px`;
+        p.style.top = `${pos.y}px`;
+
+        const tap = () => {
+          ensureAudio();
+          if (p.dataset.real === "1") {
+            portalStreak += 1;
+            portalStatus.textContent = `Серия: ${portalStreak} / 3`;
+            sfxPortalGood();
+            if (portalStreak >= 3) {
+              window.clearInterval(portalTimer);
+              showLetter();
+              return;
+            }
+            spawnPortalSet();
+            movePortals();
+          } else {
+            portalStreak = Math.max(0, portalStreak - 1);
+            portalStatus.textContent = `Серия: ${portalStreak} / 3`;
+            sfxPortalBad();
+          }
+        };
+
+        p.addEventListener("click", tap);
+        p.addEventListener("touchstart", (ev) => {
+          ev.preventDefault();
+          tap();
+        }, { passive: false });
+
+        portalArena.appendChild(p);
+      }
+    }
+
+    function movePortals() {
+      portalArena.querySelectorAll(".portal").forEach((p) => {
+        const pos = randomPos(102);
+        p.style.left = `${pos.x}px`;
+        p.style.top = `${pos.y}px`;
+      });
+    }
+
+    function showLetter() {
+      showScreen("letter");
+      sfxPortalGood();
+    }
+
+    function openLetter() {
+      ensureAudio();
+      sfxPaper();
+      letterText.textContent = letterBody;
+      letterText.style.display = "block";
+      openLetterBtn.style.display = "none";
+      toCodexBtn.style.display = "block";
+    }
+
+    function openCodex() {
+      showScreen("codex");
+      tone({ freq: 500, glide: 260, duration: 0.15, type: "triangle", gain: 0.05 });
+    }
+
+    document.querySelectorAll("#difficultyControls .chip").forEach((btn) => {
+      btn.addEventListener("click", () => setDifficulty(btn.dataset.diff));
+    });
+
+    startBtn.addEventListener("click", () => {
+      ensureAudio();
+      startBattle();
+    });
+
+    startBtn.addEventListener("touchstart", (ev) => {
+      ev.preventDefault();
+      ensureAudio();
+      startBattle();
+    }, { passive: false });
+
+    panicBtn.addEventListener("click", () => {
+      ensureAudio();
+      startBattle();
+    });
+
+    panicBtn.addEventListener("touchstart", (ev) => {
+      ev.preventDefault();
+      ensureAudio();
+      startBattle();
+    }, { passive: false });
+
+    openLetterBtn.addEventListener("click", openLetter);
+    openLetterBtn.addEventListener("touchstart", (ev) => {
+      ev.preventDefault();
+      openLetter();
+    }, { passive: false });
+
+    toCodexBtn.addEventListener("click", openCodex);
+    toCodexBtn.addEventListener("touchstart", (ev) => {
+      ev.preventDefault();
+      openCodex();
+    }, { passive: false });
+
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.expand();
+    }
+  </script>
+</body>
+</html>
